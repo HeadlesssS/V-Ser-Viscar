@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Ser_Viscar.Models;
+
 namespace Ser_Viscar.Data
 {
     public class ApplicationDbContext : DbContext
@@ -9,6 +10,7 @@ namespace Ser_Viscar.Data
         {
         }
 
-        public DbSet<User> Users { get; set; }
+        public DbSet<Vendor> Vendors { get; set; }
+        public DbSet<PurchaseInvoice> PurchaseInvoices { get; set; }
     }
 }
