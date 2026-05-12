@@ -1,0 +1,20 @@
+# Visual Studio
+.vs/
+bin/
+obj/
+
+# Node
+node_modules/
+
+# Logs
+*.log
+
+# Environment
+.env
+
+# Vite
+dist/
+
+# OS
+.DS_Store
+Thumbs.db

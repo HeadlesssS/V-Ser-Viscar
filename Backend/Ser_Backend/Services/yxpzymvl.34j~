@@ -1,0 +1,143 @@
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using Ser_Backend.Data;
+using Ser_Backend.DTO.Auth;
+using Ser_Backend.Models;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
+using static Ser_Backend.Models.User;
+
+namespace Ser_Backend.Services.Implementations;
+
+public class AuthService
+{
+    private readonly AppDbContext _db;
+    private readonly IConfiguration _config;
+
+    public AuthService(AppDbContext db, IConfiguration config)
+    {
+        _db = db;
+        _config = config;
+    }
+
+    // ── REGISTER ─────────────────────────────────────────
+    public async Task<string> RegisterAsync(RegisterDto dto)
+    {
+        // Check if email already exists
+        var exists = await _db.Users.AnyAsync(u => u.Email == dto.Email);
+        if (exists)
+            throw new Exception("Email already registered.");
+
+        // Hash the password
+        var hash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
+
+        // Create the user
+        var user = new User
+        {
+            Name = dto.Name,
+            Email = dto.Email,
+            PasswordHash = hash,
+            Phone = dto.Phone,
+            Role = Enum.Parse<UserRole>(dto.Role)
+        };
+
+        _db.Users.Add(user);
+        await _db.SaveChangesAsync();
+
+        // If Staff → create Staff record
+        if (user.Role == UserRole.Staff)
+        {
+            _db.Staff.Add(new Staff
+            {
+                UserId = user.Id,
+                EmployeeCode = $"EMP-{user.Id:D4}"
+            });
+            await _db.SaveChangesAsync();
+        }
+
+        // If Customer → create Customer record
+        if (user.Role == UserRole.Customer)
+        {
+            _db.Customers.Add(new Customer
+            {
+                UserId = user.Id
+            });
+            await _db.SaveChangesAsync();
+        }
+
+        return "Registration successful.";
+    }
+
+
+
+
+
+
+
+
+
+
+    public async Task<AuthResponseDto> LoginAsync(LoginDto dto)
+    {
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == dto.Email);
+        if (user == null)
+            throw new Exception("Invalid email or password.");
+
+        var valid = BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash);
+        if (!valid)
+            throw new Exception("Invalid email or password.");
+
+        if (!user.isActive)
+            throw new Exception("Account is disabled. Contact admin.");
+
+        var token = GenerateToken(user);
+
+        return new AuthResponseDto
+        {
+            Token = token,
+            Name = user.Name,
+            Email = user.Email,
+            Role = user.Role.ToString(),
+            ExpiresAt = DateTime.UtcNow.AddMinutes(
+                int.Parse(_config["JwtSettings:ExpiryInMinutes"]!))
+        };
+    }
+
+
+
+
+
+
+
+
+
+    private string GenerateToken(User user)
+    {
+        var secretKey = _config["JwtSettings:SecretKey"]!;
+        var issuer = _config["JwtSettings:Issuer"]!;
+        var audience = _config["JwtSettings:Audience"]!;
+        var expiry = int.Parse(_config["JwtSettings:ExpiryInMinutes"]!);
+
+        var claims = new List<Claim>
+        {
+            new(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new(ClaimTypes.Email, user.Email),
+            new(ClaimTypes.Name, user.Name),
+            new(ClaimTypes.Role, user.Role.ToString())
+        };
+
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
+        var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+        var token = new JwtSecurityToken(
+            issuer: issuer,
+            audience: audience,
+            claims: claims,
+            expires: DateTime.UtcNow.AddMinutes(expiry),
+            signingCredentials: credentials
+        );
+
+        return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+}
