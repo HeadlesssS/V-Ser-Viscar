@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Ser_Backend.DTO.Auth;
 using Ser_Backend.Services.Implementations;
 
