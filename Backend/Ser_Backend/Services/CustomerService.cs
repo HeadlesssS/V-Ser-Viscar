@@ -179,7 +179,7 @@ namespace Ser_Backend.Services.Implementations
 
             return match;
         }
-        
+
         public async Task<CustomerDetailsDto> GetCustomerDetailsAsync(int customerId){
 
             var customer = await _db.Customers
@@ -209,6 +209,77 @@ namespace Ser_Backend.Services.Implementations
                         VIN = v.VIN
                     }).ToList()
                 };
+        }
+
+        // ------------------------------------------------------------------ //
+        //  Feature 10: Customer Search                                         //
+        // ------------------------------------------------------------------ //
+
+        /// <summary>
+        /// Searches active customers using the specified strategy.
+        /// </summary>
+        /// <param name="query">The search term.</param>
+        /// <param name="searchBy">
+        /// One of: <c>name</c>, <c>phone</c>, <c>id</c>, or <c>vehicle</c>.
+        /// Defaults to <c>name</c> for unrecognised values.
+        /// </param>
+        public async Task<List<CustomerResponseDto>> SearchCustomersAsync(string query, string searchBy)
+        {
+            if (string.IsNullOrWhiteSpace(query))
+                return new List<CustomerResponseDto>();
+
+            // Build the filtered queryable based on the search strategy.
+            IQueryable<Models.Customer> q;
+
+            switch (searchBy.Trim().ToLower())
+            {
+                case "phone":
+                    q = _db.Customers
+                        .Include(c => c.User)
+                        .Where(c => c.User.isActive && c.User.Phone.Contains(query));
+                    break;
+
+                case "id":
+                    if (!int.TryParse(query, out int customerId))
+                        return new List<CustomerResponseDto>();
+
+                    q = _db.Customers
+                        .Include(c => c.User)
+                        .Where(c => c.User.isActive && c.Id == customerId);
+                    break;
+
+                case "vehicle":
+                    // Filter by vehicle plate; EF Core translates Any() to a SQL EXISTS sub-query.
+                    var lowerVehicle = query.ToLower();
+                    q = _db.Customers
+                        .Include(c => c.User)
+                        .Where(c => c.User.isActive &&
+                                    c.Vehicles.Any(v => v.VehicleNumber.ToLower().Contains(lowerVehicle)));
+                    break;
+
+                default: // "name" and anything else
+                    var lowerName = query.ToLower();
+                    q = _db.Customers
+                        .Include(c => c.User)
+                        .Where(c => c.User.isActive &&
+                                    (c.User.Name != null && c.User.Name.ToLower().Contains(lowerName)));
+                    break;
+            }
+
+            return await q
+                .OrderBy(c => c.User.Name)
+                .Select(c => new CustomerResponseDto
+                {
+                    Id            = c.Id,
+                    UserId        = c.UserId,
+                    UserName      = c.User.Name ?? string.Empty,
+                    Email         = c.User.Email,
+                    Phone         = c.User.Phone,
+                    LoyaltyTier   = c.LoyaltyTier,
+                    TotalSpent    = c.TotalSpent,
+                    CreditBalance = c.CreditBalance
+                })
+                .ToListAsync();
         }
 
         public async Task<List<CustomerHistoryDto>> GetCustomerHistoryAsync(int customerId){

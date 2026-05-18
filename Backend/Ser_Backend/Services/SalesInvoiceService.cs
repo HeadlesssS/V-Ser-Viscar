@@ -8,12 +8,14 @@ namespace Ser_Backend.Services.Implementations
     public class SalesInvoiceService
     {
         private readonly AppDbContext _db;
+        private readonly EmailService _emailService;
         private const decimal LoyaltyDiscountThreshold = 5000m;
         private const decimal LoyaltyDiscountRate      = 0.10m;
 
-        public SalesInvoiceService(AppDbContext db)
+        public SalesInvoiceService(AppDbContext db, EmailService emailService)
         {
-            _db = db;
+            _db           = db;
+            _emailService = emailService;
         }
 
         // GET all
@@ -145,6 +147,34 @@ namespace Ser_Backend.Services.Implementations
             return await GetByIdAsync(invoice.Id);
         }
 
+        // ------------------------------------------------------------------ //
+        //  Feature 11: Send Invoice Email                                      //
+        // ------------------------------------------------------------------ //
+
+        /// <summary>
+        /// Fetches the invoice, sends an HTML email to the customer, then marks
+        /// <c>EmailSent = true</c> on the invoice record.
+        /// </summary>
+        /// <param name="id">Sales invoice ID.</param>
+        public async Task SendInvoiceEmailAsync(int id)
+        {
+            // 1. Load the invoice (includes customer email via MapToDto)
+            var dto = await GetByIdAsync(id);
+
+            if (string.IsNullOrWhiteSpace(dto.CustomerEmail))
+                throw new Exception($"Customer email is not available for invoice #{id}.");
+
+            // 2. Send the HTML email
+            await _emailService.SendInvoiceEmailAsync(dto.CustomerEmail, dto.CustomerName, dto);
+
+            // 3. Mark EmailSent = true and persist
+            var invoice = await _db.SalesInvoices.FindAsync(id)
+                ?? throw new Exception($"Sales invoice #{id} not found when updating EmailSent flag.");
+
+            invoice.EmailSent = true;
+            await _db.SaveChangesAsync();
+        }
+
         // DELETE
         public async Task DeleteAsync(int id)
         {
@@ -177,6 +207,7 @@ namespace Ser_Backend.Services.Implementations
             StaffName              = s.Staff?.User?.Name ?? string.Empty,
             CustomerId             = s.CustomerId,
             CustomerName           = s.Customer?.User?.Name ?? string.Empty,
+            CustomerEmail          = s.Customer?.User?.Email ?? string.Empty,
             Subtotal               = s.Subtotal,
             DiscountAmount         = s.DiscountAmount,
             TotalAmount            = s.TotalAmount,

@@ -24,6 +24,9 @@ public class AuthService
 
     public async Task<string> RegisterAsync(RegisterDto dto)
     {
+        if (dto.Role == "Admin")
+            throw new Exception("Admin accounts cannot be created through this endpoint.");
+
         var exists = await _db.Users.AnyAsync(u => u.Email == dto.Email);
         if (exists)
             throw new Exception("Email already registered.");
