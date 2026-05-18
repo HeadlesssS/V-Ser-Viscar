@@ -33,6 +33,8 @@ namespace Ser_Backend.DTO.SalesInvoice
         public string StaffName { get; set; } = string.Empty;
         public int CustomerId { get; set; }
         public string CustomerName { get; set; } = string.Empty;
+        /// <summary>Customer's email address – used by <c>EmailService</c>.</summary>
+        public string CustomerEmail { get; set; } = string.Empty;
         public decimal Subtotal { get; set; }
         public decimal DiscountAmount { get; set; }
         public decimal TotalAmount { get; set; }
