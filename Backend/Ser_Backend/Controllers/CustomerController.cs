@@ -109,7 +109,7 @@ namespace Ser_Backend.Controllers
             }
         }
 
-    
+
 
     [HttpGet("{id}")]
     [Authorize(Roles = "Admin,Staff")]
@@ -126,17 +126,50 @@ namespace Ser_Backend.Controllers
 
 
     [HttpGet("{id}/history")]
-
     [Authorize(Roles = "Admin,Staff")]
-    public async Task<IActionResult> GetCustomerHistory(int id){
-        try{
+    public async Task<IActionResult> GetCustomerHistory(int id)
+    {
+        try
+        {
             var result = await _service.GetCustomerHistoryAsync(id);
             return Ok(result);
         }
-        catch (Exception ex){
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = ex.Message });
+        }
+    }
+
+    // ------------------------------------------------------------------ //
+    //  Feature 10: GET api/customers/search?q=...&by=name|phone|id|vehicle //
+    // ------------------------------------------------------------------ //
+
+    /// <summary>
+    /// Searches customers by name, phone number, customer ID, or vehicle plate.
+    /// </summary>
+    /// <param name="q">Search term.</param>
+    /// <param name="by">
+    /// Search strategy: <c>name</c> (default), <c>phone</c>, <c>id</c>,
+    /// or <c>vehicle</c>.
+    /// </param>
+    [HttpGet("search")]
+    [Authorize(Roles = "Admin,Staff")]
+    public async Task<IActionResult> SearchCustomers(
+        [FromQuery] string q,
+        [FromQuery] string by = "name")
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(q))
+                return BadRequest(new { message = "Search query 'q' is required." });
+
+            var results = await _service.SearchCustomersAsync(q, by);
+            return Ok(results);
+        }
+        catch (Exception ex)
+        {
             return StatusCode(500, new { message = ex.Message });
         }
     }
 }
 }
-
