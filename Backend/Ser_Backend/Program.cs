@@ -1,8 +1,10 @@
 using Microsoft.EntityFrameworkCore;
 using Ser_Backend.Data;
 using Ser_Backend.Services.Implementations;
+using Ser_Backend.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
 // Add services to the container.
 builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -15,6 +17,12 @@ builder.Services.AddOpenApi();
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<VendorService>();
+builder.Services.AddScoped<PurchaseInvoiceService>();
+builder.Services.AddScoped<FinancialReportService>();
+builder.Services.AddScoped<PartService>();
+builder.Services.AddScoped<SalesInvoiceService>();
+
 
 
 builder.Services.AddCors(options =>

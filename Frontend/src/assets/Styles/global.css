@@ -1,0 +1,142 @@
+/* =========================
+   GLOBAL RESET
+========================= */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Segoe UI", sans-serif;
+}
+
+body {
+  background: #ffffff;   /* WHITE BACKGROUND */
+  color: #1a1a1a;
+}
+
+/* =========================
+   COLOR THEME (RED PRIMARY)
+========================= */
+:root {
+  --primary-red: #e11d2e;
+  --dark-red: #b50f1c;
+  --light-gray: #f5f5f5;
+  --border: #e5e5e5;
+}
+
+/* =========================
+   BUTTONS (RED THEME)
+========================= */
+button {
+  cursor: pointer;
+  border: none;
+  transition: 0.2s ease;
+}
+
+.btn {
+  padding: 10px 14px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* PRIMARY BUTTON */
+.btn-primary {
+  background: var(--primary-red);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: var(--dark-red);
+}
+
+/* OUTLINE BUTTON */
+.btn-outline {
+  border: 1px solid var(--primary-red);
+  color: var(--primary-red);
+  background: white;
+}
+
+.btn-outline:hover {
+  background: var(--primary-red);
+  color: white;
+}
+
+/* =========================
+   INPUTS
+========================= */
+input, select {
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  outline: none;
+}
+
+input:focus {
+  border-color: var(--primary-red);
+}
+
+/* =========================
+   TABLE STYLE
+========================= */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+}
+
+th {
+  text-align: left;
+  padding: 12px;
+  background: var(--light-gray);
+  border-bottom: 1px solid var(--border);
+}
+
+td {
+  padding: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* =========================
+   CARD STYLE (DASHBOARD)
+========================= */
+.card {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
+
+/* =========================
+   NAVBAR (RED HEADER STYLE)
+========================= */
+.navbar {
+  background: var(--primary-red);
+  color: white;
+  padding: 14px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.navbar a {
+  color: white;
+  margin-left: 15px;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.navbar a:hover {
+  text-decoration: underline;
+}
+
+/* =========================
+   PAGE LAYOUT
+========================= */
+.container {
+  padding: 20px;
+}
+
+h1, h2, h3 {
+  margin-bottom: 10px;
+}
