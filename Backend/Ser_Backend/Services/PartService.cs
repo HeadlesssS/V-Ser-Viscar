@@ -8,10 +8,12 @@ namespace Ser_Backend.Services.Implementations
     public class PartService
     {
         private readonly AppDbContext _db;
+        private readonly AuditService _audit;
 
-        public PartService(AppDbContext db)
+        public PartService(AppDbContext db, AuditService audit)
         {
             _db = db;
+            _audit = audit;
         }
 
         // GET all active parts
@@ -94,6 +96,10 @@ namespace Ser_Backend.Services.Implementations
             _db.Parts.Add(part);
             await _db.SaveChangesAsync();
 
+            await _audit.LogAsync("Create", "Part",
+                $"Part created: {part.Name} (SKU {part.SKU})",
+                entityId: part.Id);
+
             return await GetByIdAsync(part.Id);
         }
 
@@ -135,6 +141,10 @@ namespace Ser_Backend.Services.Implementations
 
             await _db.SaveChangesAsync();
 
+            await _audit.LogAsync("Update", "Part",
+                $"Part updated: {part.Name} (SKU {part.SKU})",
+                entityId: part.Id);
+
             return await GetByIdAsync(part.Id);
         }
 
@@ -149,6 +159,10 @@ namespace Ser_Backend.Services.Implementations
 
             part.IsActive = false;
             await _db.SaveChangesAsync();
+
+            await _audit.LogAsync("Delete", "Part",
+                $"Part deactivated: {part.Name} (SKU {part.SKU})",
+                entityId: part.Id);
         }
 
         // Helper mapper

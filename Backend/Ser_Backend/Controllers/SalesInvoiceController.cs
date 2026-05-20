@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Ser_Backend.DTO.SalesInvoice;
 using Ser_Backend.Services.Implementations;
@@ -83,6 +84,29 @@ namespace Ser_Backend.Controllers
             catch (Exception ex)
             {
                 return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        // ------------------------------------------------------------------ //
+        //  Feature 11: POST api/sales-invoices/{id}/send-email                //
+        // ------------------------------------------------------------------ //
+
+        /// <summary>
+        /// Sends an HTML invoice email to the customer and marks
+        /// <c>EmailSent = true</c> on the invoice.
+        /// </summary>
+        [HttpPost("{id}/send-email")]
+        [Authorize(Roles = "Admin,Staff")]
+        public async Task<IActionResult> SendEmail(int id)
+        {
+            try
+            {
+                await _service.SendInvoiceEmailAsync(id);
+                return Ok(new { message = $"Invoice email sent successfully for invoice #{id}." });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = ex.Message });
             }
         }
     }

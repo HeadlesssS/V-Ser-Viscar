@@ -1,11 +1,14 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using QuestPDF.Infrastructure;
 using Ser_Backend.Data;
 using Ser_Backend.Services.Implementations;
 using Ser_Backend.Services;
 using System.Text;
 using System.Security.Claims;
+
+QuestPDF.Settings.License = LicenseType.Community;
 
 var builder = WebApplication.CreateBuilder(args);
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
@@ -26,8 +29,14 @@ builder.Services.AddScoped<VendorService>();
 builder.Services.AddScoped<PurchaseInvoiceService>();
 builder.Services.AddScoped<FinancialReportService>();
 builder.Services.AddScoped<PartService>();
+builder.Services.AddScoped<EmailService>();
 builder.Services.AddScoped<SalesInvoiceService>();
 builder.Services.AddScoped<CustomerService>();
+builder.Services.AddScoped<StaffReportService>();
+builder.Services.AddScoped<NotificationService>();
+builder.Services.AddScoped<AuditService>();
+builder.Services.AddScoped<PdfService>();
+builder.Services.AddHttpContextAccessor();
 
 var jwt = builder.Configuration.GetSection("JwtSettings");
 var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt["SecretKey"]!));

@@ -2,16 +2,19 @@ using Microsoft.EntityFrameworkCore;
 using Ser_Backend.Data;
 using Ser_Backend.DTO.Vendor;
 using Ser_Backend.Models;
+using Ser_Backend.Services.Implementations;
 
 namespace Ser_Backend.Services
 {
     public class VendorService
     {
         private readonly AppDbContext _db;
+        private readonly AuditService _audit;
 
-        public VendorService(AppDbContext db)
+        public VendorService(AppDbContext db, AuditService audit)
         {
             _db = db;
+            _audit = audit;
         }
 
         // GET all active vendors
@@ -56,6 +59,10 @@ namespace Ser_Backend.Services
             _db.Vendors.Add(vendor);
             await _db.SaveChangesAsync();
 
+            await _audit.LogAsync("Create", "Vendor",
+                $"Vendor created: {vendor.Name}",
+                entityId: vendor.Id);
+
             return MapToDto(vendor);
         }
 
@@ -82,6 +89,10 @@ namespace Ser_Backend.Services
 
             await _db.SaveChangesAsync();
 
+            await _audit.LogAsync("Update", "Vendor",
+                $"Vendor updated: {vendor.Name}",
+                entityId: vendor.Id);
+
             return MapToDto(vendor);
         }
 
@@ -96,6 +107,10 @@ namespace Ser_Backend.Services
 
             vendor.IsActive = false;
             await _db.SaveChangesAsync();
+
+            await _audit.LogAsync("Delete", "Vendor",
+                $"Vendor deactivated: {vendor.Name}",
+                entityId: vendor.Id);
         }
 
         // Helper: map model to DTO

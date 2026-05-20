@@ -21,6 +21,7 @@ namespace Ser_Backend.Data
         public DbSet<Review> Reviews => Set<Review>();
         public DbSet<Notification> Notifications => Set<Notification>();
         public DbSet<AIPrediction> AIPredictions => Set<AIPrediction>();
+        public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -38,6 +39,12 @@ namespace Ser_Backend.Data
                 .WithMany()
                 .HasForeignKey(n => n.RecipientId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<AuditLog>()
+                .HasOne(a => a.User)
+                .WithMany()
+                .HasForeignKey(a => a.UserId)
+                .OnDelete(DeleteBehavior.SetNull);
 
         }
     }

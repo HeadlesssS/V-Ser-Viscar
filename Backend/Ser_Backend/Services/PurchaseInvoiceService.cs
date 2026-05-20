@@ -8,10 +8,12 @@ namespace Ser_Backend.Services.Implementations
     public class PurchaseInvoiceService
     {
         private readonly AppDbContext _db;
+        private readonly AuditService _audit;
 
-        public PurchaseInvoiceService(AppDbContext db)
+        public PurchaseInvoiceService(AppDbContext db, AuditService audit)
         {
             _db = db;
+            _audit = audit;
         }
 
         // GET all invoices (summary list)
@@ -102,6 +104,10 @@ namespace Ser_Backend.Services.Implementations
             _db.PurchaseInvoices.Add(invoice);
             await _db.SaveChangesAsync();
 
+            await _audit.LogAsync("Create", "PurchaseInvoice",
+                $"Purchase invoice #{invoice.Id} from {vendor.Name} — total {total:C}",
+                dto.AdminId, invoice.Id);
+
             // Reload with navigation props for response
             return await GetByIdAsync(invoice.Id);
         }
@@ -124,6 +130,10 @@ namespace Ser_Backend.Services.Implementations
 
             _db.PurchaseInvoices.Remove(invoice);
             await _db.SaveChangesAsync();
+
+            await _audit.LogAsync("Delete", "PurchaseInvoice",
+                $"Purchase invoice #{id} deleted",
+                entityId: id);
         }
 
         // Helper mapper

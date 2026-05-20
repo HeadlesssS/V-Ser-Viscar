@@ -8,12 +8,16 @@ namespace Ser_Backend.Services.Implementations
     public class SalesInvoiceService
     {
         private readonly AppDbContext _db;
+        private readonly EmailService _emailService;
+        private readonly AuditService _audit;
         private const decimal LoyaltyDiscountThreshold = 5000m;
         private const decimal LoyaltyDiscountRate      = 0.10m;
 
-        public SalesInvoiceService(AppDbContext db)
+        public SalesInvoiceService(AppDbContext db, EmailService emailService, AuditService audit)
         {
-            _db = db;
+            _db           = db;
+            _emailService = emailService;
+            _audit        = audit;
         }
 
         // GET all
@@ -142,7 +146,43 @@ namespace Ser_Backend.Services.Implementations
 
             await _db.SaveChangesAsync();
 
+            await _audit.LogAsync("Create", "SalesInvoice",
+                $"Sales invoice #{invoice.Id} created for {customer.User?.Name} — total {totalAmount:C}",
+                staffUserId > 0 ? staffUserId : null, invoice.Id);
+
             return await GetByIdAsync(invoice.Id);
+        }
+
+        // ------------------------------------------------------------------ //
+        //  Feature 11: Send Invoice Email                                      //
+        // ------------------------------------------------------------------ //
+
+        /// <summary>
+        /// Fetches the invoice, sends an HTML email to the customer, then marks
+        /// <c>EmailSent = true</c> on the invoice record.
+        /// </summary>
+        /// <param name="id">Sales invoice ID.</param>
+        public async Task SendInvoiceEmailAsync(int id)
+        {
+            // 1. Load the invoice (includes customer email via MapToDto)
+            var dto = await GetByIdAsync(id);
+
+            if (string.IsNullOrWhiteSpace(dto.CustomerEmail))
+                throw new Exception($"Customer email is not available for invoice #{id}.");
+
+            // 2. Send the HTML email
+            await _emailService.SendInvoiceEmailAsync(dto.CustomerEmail, dto.CustomerName, dto);
+
+            // 3. Mark EmailSent = true and persist
+            var invoice = await _db.SalesInvoices.FindAsync(id)
+                ?? throw new Exception($"Sales invoice #{id} not found when updating EmailSent flag.");
+
+            invoice.EmailSent = true;
+            await _db.SaveChangesAsync();
+
+            await _audit.LogAsync("Update", "SalesInvoice",
+                $"Invoice email sent for sales invoice #{id}",
+                entityId: id);
         }
 
         // DELETE
@@ -167,6 +207,10 @@ namespace Ser_Backend.Services.Implementations
 
             _db.SalesInvoices.Remove(invoice);
             await _db.SaveChangesAsync();
+
+            await _audit.LogAsync("Delete", "SalesInvoice",
+                $"Sales invoice #{id} deleted (total was {invoice.TotalAmount:C})",
+                entityId: id);
         }
 
         // Mapper
@@ -177,6 +221,7 @@ namespace Ser_Backend.Services.Implementations
             StaffName              = s.Staff?.User?.Name ?? string.Empty,
             CustomerId             = s.CustomerId,
             CustomerName           = s.Customer?.User?.Name ?? string.Empty,
+            CustomerEmail          = s.Customer?.User?.Email ?? string.Empty,
             Subtotal               = s.Subtotal,
             DiscountAmount         = s.DiscountAmount,
             TotalAmount            = s.TotalAmount,

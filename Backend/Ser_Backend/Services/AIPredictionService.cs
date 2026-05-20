@@ -11,19 +11,22 @@ using Microsoft.EntityFrameworkCore;
 using Ser_Backend.Data;
 using Ser_Backend.DTO.AIPredictions;
 using Ser_Backend.Models;
+using Ser_Backend.Services.Implementations;
 
 namespace Ser_Backend.Services
 {
     public class AIPredictionService
     {
         private readonly AppDbContext _db;
+        private readonly AuditService _audit;
         private readonly HttpClient _httpClient;
         private const string GROQ_API_KEY = "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";
         private const string GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
 
-        public AIPredictionService(AppDbContext db)
+        public AIPredictionService(AppDbContext db, AuditService audit)
         {
             _db = db;
+            _audit = audit;
             _httpClient = new HttpClient();
         }
 
@@ -189,6 +192,10 @@ ACTION: [A step-by-step recommended action plan for the customer to address this
 
             _db.AIPredictions.Add(prediction);
             await _db.SaveChangesAsync();
+
+            await _audit.LogAsync("Create", "AIPrediction",
+                $"AI prediction run for {vehicle.VehicleNumber}: {predictedPart} ({severity})",
+                userId, prediction.Id);
 
             return new AIPredictionResponseDto
             {

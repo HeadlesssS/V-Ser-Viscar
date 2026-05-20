@@ -15,15 +15,20 @@ public class AuthService
 {
     private readonly AppDbContext _db;
     private readonly IConfiguration _config;
+    private readonly AuditService _audit;
 
-    public AuthService(AppDbContext db, IConfiguration config)
+    public AuthService(AppDbContext db, IConfiguration config, AuditService audit)
     {
         _db = db;
         _config = config;
+        _audit = audit;
     }
 
     public async Task<string> RegisterAsync(RegisterDto dto)
     {
+        if (dto.Role == "Admin")
+            throw new Exception("Admin accounts cannot be created through this endpoint.");
+
         var exists = await _db.Users.AnyAsync(u => u.Email == dto.Email);
         if (exists)
             throw new Exception("Email already registered.");
@@ -61,6 +66,10 @@ public class AuthService
             await _db.SaveChangesAsync();
         }
 
+        await _audit.LogAsync("Create", "Auth",
+            $"New {user.Role} account registered: {user.Email}",
+            user.Id);
+
         return "Registration successful.";
     }
 
@@ -87,6 +96,10 @@ public class AuthService
             throw new Exception("Account is disabled. Contact admin.");
 
         var token = GenerateToken(user);
+
+        await _audit.LogAsync("Login", "Auth",
+            $"{user.Role} logged in: {user.Email}",
+            user.Id);
 
         return new AuthResponseDto
         {
